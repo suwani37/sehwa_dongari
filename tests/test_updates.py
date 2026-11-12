@@ -13,6 +13,7 @@ from tetris.piece import Piece
 from tetris.preferences import ACTIONS, FRAME_MS, PlayerSettings
 from tetris.renderer import Renderer
 from tetris.state import GameState
+from tetris.tutorial import LESSONS, TutorialSession
 from tetris import settings
 
 DT = 1 / 60
@@ -253,7 +254,7 @@ class UpdateTests(unittest.TestCase):
                 for page in range(len(TUTORIAL[language])):
                     _, paragraphs, height = renderer.tutorial_layout(page)
                     self.assertLessEqual(height, 496)
-                    renderer.draw_tutorial(page)
+                    renderer.draw_tutorial(TutorialSession(renderer.preferences, page))
                 state = GameState(mode="blitz")
                 state.paused = True
                 renderer.draw_pause(state)

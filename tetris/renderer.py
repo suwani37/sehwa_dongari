@@ -11,6 +11,7 @@ from tetris.piece import COLORS, spawn_piece
 from tetris.preferences import ACTIONS, FRAME_MS, OPTIONS, PlayerSettings
 from tetris.i18n import TUTORIAL, text
 from tetris.state import GameState
+from tetris.tutorial import LESSONS, TutorialSession
 from tetris.native_text import NativeText
 
 
@@ -314,7 +315,7 @@ class Renderer:
 
     @staticmethod
     def tutorial_rect(index):
-        return pygame.Rect(100 + index * 270, 770, 200, 52)
+        return pygame.Rect(55 + index * 294, 780, 240, 52)
 
     def _centered(self, label, y, font, color):
         self._blit_text(label, font, color, (settings.WINDOW_WIDTH // 2, y), "midtop")
@@ -417,36 +418,84 @@ class Renderer:
             lines.append(line)
         return lines
 
-    def tutorial_layout(self, page):
-        key = (self.preferences.language,page)
-        if key in self._tutorial_cache:
-            return self._tutorial_cache[key]
-        _, paragraphs = TUTORIAL[self.preferences.language][page]
-        for size in range(23, 16, -1):
-            font = self.font(size)
-            wrapped = [self.wrap_lines(p, font, settings.WINDOW_WIDTH - 180) for p in paragraphs]
-            height = sum(len(lines) * (font.get_linesize() + 8) + 18 for lines in wrapped)
-            if height <= 496:
-                self._tutorial_cache[key] = (font,wrapped,height)
-                return self._tutorial_cache[key]
-        return font, wrapped, height
+    @staticmethod
+    def tutorial_control_rect(index):
+        return pygame.Rect(410 + (index % 2) * 230, 355 + (index // 2) * 58, 218, 48)
 
-    def draw_tutorial(self, page=0):
+    def tutorial_layout(self, page):
+        key = (self.preferences.language, page)
+        if key not in self._tutorial_cache:
+            _, paragraphs = TUTORIAL[self.preferences.language][page]
+            for size in range(22, 16, -1):
+                font = self.font(size)
+                wrapped = [self.wrap_lines(p, font, 455) for p in paragraphs]
+                height = sum(len(lines) * (font.get_linesize() + 5) for lines in wrapped)
+                if height <= 100:
+                    break
+            self._tutorial_cache[key] = (font, wrapped, height)
+        return self._tutorial_cache[key]
+
+    def draw_tutorial(self, session=None):
+        session = session or TutorialSession(self.preferences)
         self.screen.fill(settings.BACKGROUND)
-        pages = TUTORIAL[self.preferences.language]
-        heading, _ = pages[page]
-        self._centered(self.tr("tutorial"), 65, self.menu_font, settings.ACCENT_COLOR)
-        self._centered(heading, 174, self.title_font, settings.TEXT_COLOR)
-        font, paragraphs, _ = self.tutorial_layout(page)
-        y = 242
+        self._centered(self.tr("tutorial"), 22, self.title_font, settings.ACCENT_COLOR)
+        for index in range(len(LESSONS)):
+            color = (85,204,112) if session.finished or index < session.index else (
+                settings.ACCENT_COLOR if index == session.index else settings.BORDER_COLOR)
+            pygame.draw.rect(self.screen, color, (65 + index * 103, 95, 90, 8), border_radius=3)
+        self._label(f"{session.index + 1} / {len(LESSONS)}", 825, 38,
+                    self.small_font, settings.TEXT_COLOR)
+        rect = pygame.Rect(65, 145, 300, 600)
+        self._battle_field(session.state, rect)
+        self._button(self.tutorial_rect(0), self.tr("practice_exit" if session.finished else "practice_skip"))
+        if session.finished:
+            self._label(self.tr("practice_complete"), 410, 155, self.title_font, (85,204,112))
+            y = 225
+            for line in self.wrap_lines(self.tr("practice_modes"), self.text_font, 455):
+                self._label(line, 410, y, self.text_font, settings.TEXT_COLOR)
+                y += self.text_font.get_linesize() + 6
+            for mode, key in zip(("sprint40", "blitz", "marathon", "battle"),
+                                 ("sprint_desc", "blitz_desc", "marathon_desc", "battle_desc")):
+                y += 18
+                for line in self.wrap_lines(f"{self.tr(mode)}: {self.tr(key)}", self.small_font, 455):
+                    self._label(line, 410, y, self.small_font, settings.TEXT_COLOR)
+                    y += self.small_font.get_linesize() + 4
+            self._button(self.tutorial_rect(2), self.tr("practice_finish"), True)
+            return
+        title, _ = TUTORIAL[self.preferences.language][session.index]
+        self._label(title, 410, 145, self.title_font, settings.TEXT_COLOR)
+        font, paragraphs, _ = self.tutorial_layout(session.index)
+        y = 210
         for lines in paragraphs:
             for line in lines:
-                self._label(line, 90, y, font, settings.TEXT_COLOR)
-                y += font.get_linesize() + 8
-            y += 18
-        for index, key in enumerate(("prev", "back", "next_page")):
-            self._button(self.tutorial_rect(index), self.tr(key))
-        self._centered(f"{page + 1} / {len(pages)}", 830, self.small_font, settings.MUTED_COLOR)
+                self._label(line, 410, y, font, settings.TEXT_COLOR)
+                y += font.get_linesize() + 5
+        self._label(self.tr("practice_controls"), 410, 322, self.font(17), settings.MUTED_COLOR)
+        for index, action in enumerate(session.lesson.controls):
+            keys = [self.key_label(key) for key in self.preferences.keys[action]
+                    if key is not None and key != pygame.K_ESCAPE]
+            key_hint = " / ".join(keys) if keys else self.tr("practice_unbound")
+            label = f"{self.tr(action)} [{key_hint}]"
+            self._button(self.tutorial_control_rect(index), label)
+        status = ("practice_done" if session.complete else
+                  "practice_failed" if session.needs_retry else "practice_progress")
+        for index, line in enumerate(self.wrap_lines(self.tr(status), self.font(20), 375)):
+            self._label(line, 410, 489 + index * 27, self.font(20),
+                        (85,204,112) if session.complete else settings.ACCENT_COLOR)
+        self._label(f"{session.progress} / {session.lesson.target}", 810, 489,
+                    self.text_font, settings.TEXT_COLOR)
+        self._label(self.tr("hold_label"), 410, 550, self.small_font, settings.MUTED_COLOR)
+        self._draw_preview(session.state.hold_kind, 410, 592, 130)
+        for index, line in enumerate(self.wrap_lines(self.tr("practice_no_gravity"), self.small_font, 455)):
+            self._label(line, 410, 665 + index * 27, self.small_font, settings.MUTED_COLOR)
+        self._button(self.tutorial_rect(1), self.tr("practice_retry"))
+        if session.complete:
+            self._button(self.tutorial_rect(2), self.tr("practice_next"), True)
+        else:
+            target = self.tutorial_rect(2)
+            pygame.draw.rect(self.screen, settings.BOARD_BACKGROUND, target, border_radius=8)
+            self._blit_text(self.tr("practice_next"), self.text_font, settings.MUTED_COLOR,
+                            target.center, "center")
 
     def shade(self):
         shade = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

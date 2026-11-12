@@ -9,6 +9,7 @@ from tetris.piece import Piece
 from tetris.preferences import PlayerSettings
 from tetris.renderer import Renderer
 from tetris.state import GameState
+from tetris.tutorial import LESSONS, TutorialSession
 
 
 class ClearUpdateTests(unittest.TestCase):
@@ -118,17 +119,28 @@ class ClearUpdateTests(unittest.TestCase):
         state.tick(2.1)
         self.assertEqual(state.clear_notice_timer,0)
 
-    def test_tutorial_pages_wrap_to_new_count(self):
+    def test_tutorial_progress_requires_action_and_explicit_next(self):
         game = Game(PlayerSettings())
-        game.open("tutorial","menu")
-        for language in ("en","ko"):
+        game.open("tutorial", "menu")
+        for language in ("en", "ko"):
             game.preferences.language = language
-            self.assertEqual(len(TUTORIAL[language]),3)
-            game.tutorial_page = 2
-            game.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_RIGHT))
-            self.assertEqual(game.tutorial_page,0)
-            game.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_LEFT))
-            self.assertEqual(game.tutorial_page,2)
+            self.assertEqual(len(TUTORIAL[language]), len(LESSONS))
+        game.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN))
+        self.assertEqual(game.tutorial.index, 0)
+        game.handle_event(pygame.event.Event(pygame.KEYUP, key=pygame.K_RETURN))
+        game.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RIGHT))
+        game.tick(1 / 60)
+        self.assertEqual(game.tutorial.index, 0)
+        self.assertEqual(game.tutorial.progress, 0)
+        game.handle_event(pygame.event.Event(pygame.KEYUP, key=pygame.K_RIGHT))
+        game.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_LEFT))
+        for _ in range(20):
+            game.tick(1 / 60)
+        self.assertTrue(game.tutorial.complete)
+        self.assertEqual(game.tutorial.index, 0)
+        game.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN))
+        self.assertEqual(game.tutorial.index, 1)
+        self.assertFalse(game.held.order)
 
     def test_notice_and_tutorial_surfaces_both_languages(self):
         pygame.font.init()
@@ -147,6 +159,6 @@ class ClearUpdateTests(unittest.TestCase):
                 self.assertNotEqual(text(language,state.last_clear_type),"")
                 for page in range(len(TUTORIAL[language])):
                     self.assertLessEqual(renderer.tutorial_layout(page)[2],496)
-                    renderer.draw_tutorial(page)
+                    renderer.draw_tutorial(TutorialSession(renderer.preferences, page))
         finally:
             pygame.font.quit()

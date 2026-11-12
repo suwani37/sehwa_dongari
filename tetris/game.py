@@ -2,7 +2,7 @@
 import pygame
 
 from tetris import settings
-from tetris.i18n import TUTORIAL
+from tetris.tutorial import TutorialSession
 from tetris.controls import HeldKeys, HorizontalRepeat
 from tetris.preferences import ACTIONS, OPTIONS, PlayerSettings
 from tetris.renderer import Renderer
@@ -25,7 +25,7 @@ class Game:
         self.slot = 0
         self.capturing = None
         self.message = ""
-        self.tutorial_page = 0
+        self.tutorial = None
         self.held = HeldKeys()
         self.horizontal = HorizontalRepeat()
         self.running = True
@@ -40,10 +40,57 @@ class Game:
         if origin is not None:
             self.origin = origin
         if view == "tutorial":
-            self.tutorial_page = 0
+            self.tutorial = TutorialSession(self.preferences)
         if view == "menu":
             self.state = None
             self.battle = None
+
+    def _leave_tutorial(self):
+        destination = self.origin
+        self.tutorial = None
+        self.open(destination)
+
+    def _tutorial_next(self):
+        if self.tutorial.advance():
+            self.held.clear()
+            self.horizontal.reset()
+
+    def _tutorial_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self._leave_tutorial()
+                return
+            if getattr(event, "repeat", False) or not self.held.press(event.key):
+                return
+            if self.tutorial.finished:
+                if event.key == pygame.K_RETURN:
+                    self._leave_tutorial()
+            elif self.tutorial.complete:
+                if event.key == pygame.K_RETURN:
+                    self._tutorial_next()
+            else:
+                action = next((name for name in ACTIONS
+                               if self.preferences.matches(name, event.key)), None)
+                # Horizontal and held soft drop are applied once per tick.
+                if action not in ("left", "right", "soft_drop"):
+                    self.tutorial.perform(action or "")
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if Renderer.tutorial_rect(0).collidepoint(event.pos):
+                self._leave_tutorial()
+            elif Renderer.tutorial_rect(1).collidepoint(event.pos) and not self.tutorial.finished:
+                self.tutorial.retry()
+                self.held.clear()
+                self.horizontal.reset()
+            elif Renderer.tutorial_rect(2).collidepoint(event.pos):
+                if self.tutorial.finished:
+                    self._leave_tutorial()
+                else:
+                    self._tutorial_next()
+            elif not self.tutorial.finished:
+                for index, action in enumerate(self.tutorial.lesson.controls):
+                    if Renderer.tutorial_control_rect(index).collidepoint(event.pos):
+                        self.tutorial.perform(action)
+                        break
 
     def start(self, mode):
         if mode == "battle":
@@ -215,6 +262,9 @@ class Game:
             if self.view == "game":
                 self.pause()
             self.held.clear()
+            self.horizontal.reset()
+            if self.view == "tutorial":
+                self.tutorial.soft_timer = 0.0
             return
         if self.view == "result" and event.type in (pygame.KEYDOWN, pygame.TEXTINPUT, pygame.TEXTEDITING):
             return
@@ -229,19 +279,7 @@ class Game:
             self._settings_event(event)
             return
         if self.view == "tutorial":
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.open(self.origin)
-                elif event.key in (pygame.K_LEFT, pygame.K_RIGHT):
-                    self.tutorial_page = (self.tutorial_page + (-1 if event.key == pygame.K_LEFT else 1)) % len(TUTORIAL[self.preferences.language])
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for index in range(3):
-                    if Renderer.tutorial_rect(index).collidepoint(event.pos):
-                        if index == 1:
-                            self.open(self.origin)
-                        else:
-                            self.tutorial_page = (self.tutorial_page + (-1 if index == 0 else 1)) % len(TUTORIAL[self.preferences.language])
-                        break
+            self._tutorial_event(event)
             return
         if self.view == "game":
             if event.type != pygame.KEYDOWN or not self.held.press(event.key):
@@ -284,6 +322,11 @@ class Game:
                     break
 
     def tick(self, elapsed):
+        if self.view == "tutorial":
+            self.horizontal.update(elapsed, self.held.direction(self.preferences),
+                                   self.tutorial, self.preferences)
+            self.tutorial.tick(elapsed, self.held.active("soft_drop", self.preferences))
+            return
         if self.view != "game" or self.state is None:
             return
         self.horizontal.update(elapsed, self.held.direction(self.preferences), self.state, self.preferences)
@@ -309,7 +352,7 @@ class Game:
             renderer.draw_settings(self.preferences, self.selected, self.settings_tab,
                                    self.slot, self.capturing, self.message)
         elif self.view == "tutorial":
-            renderer.draw_tutorial(self.tutorial_page)
+            renderer.draw_tutorial(self.tutorial)
         elif self.view == "pause":
             renderer.draw_pause(self.state, self.selected, battle=self.battle)
         elif self.view == "result":

@@ -106,43 +106,46 @@ def text(language, key):
     return table.get(key, EN.get(key, key))
 
 
+EN.update({
+ "practice_skip": "SKIP (Esc)", "practice_retry": "TRY AGAIN", "practice_next": "NEXT (Enter)",
+ "practice_finish": "FINISH (Enter)", "practice_exit": "BACK", "practice_done": "MISSION CLEAR!",
+ "practice_complete": "TUTORIAL COMPLETE", "practice_failed": "No line cleared. Try again!",
+ "practice_wait": "Complete the mission to unlock the next step.",
+ "practice_no_gravity": "Take your time: pieces do not fall automatically.",
+ "practice_controls": "Use your keys or click the buttons below.",
+ "practice_unbound": "Click to try", "practice_progress": "Progress",
+ "practice_modes": "You are ready! Choose PLAY from the main menu to start a game.",
+})
+KO.update({
+ "practice_skip": "건너뛰기 (Esc)", "practice_retry": "다시 시도", "practice_next": "다음 (Enter)",
+ "practice_finish": "완료 (Enter)", "practice_exit": "돌아가기", "practice_done": "미션 성공!",
+ "practice_complete": "튜토리얼 완료", "practice_failed": "줄을 지우지 못했어요. 다시 시도해 보세요!",
+ "practice_wait": "미션을 완료하면 다음 단계로 넘어갈 수 있어요.",
+ "practice_no_gravity": "천천히 해 보세요. 조각은 자동으로 떨어지지 않아요.",
+ "practice_controls": "설정한 키를 누르거나 아래 버튼을 클릭하세요.",
+ "practice_unbound": "클릭해서 체험", "practice_progress": "진행",
+ "practice_modes": "준비가 끝났어요! 메인 화면에서 플레이를 눌러 게임을 시작하세요.",
+})
+
 TUTORIAL = {
  "en": (
-  ("1. Default movement keys", (
-   "Left / Right arrows: move the piece horizontally.",
-   "Down arrow: hold for soft drop. Space: hard drop to the ghost position and lock immediately.",
-   "Up arrow or X: rotate clockwise. Z: rotate counterclockwise.",
-  )),
-  ("2. Other default keys", (
-   "C or Left Shift: hold or swap the current piece.",
-   "Esc or P: pause. Choose Resume or press the pause key again to continue.",
-   "Q: quit while playing. Result screen: use the mouse to choose Retry or another button.",
-   "Menus: Up / Down and Enter, or mouse. Tutorial: Left / Right for pages, Esc to go back. These are the defaults; gameplay keys can be changed under SETTING > KEYS.",
-  )),
-  ("3. Mode differences", (
-   "40 LINE: clear 40 lines as quickly as possible. The final clear stops the timer; a shorter time is better.",
-   "BLITZ: a 120-second score challenge. The game ends when time runs out; a higher score is better.",
-   "MARATHON: no time limit or fixed line target. Keep playing as the level increases every ten lines.",
-   "AI BATTLE: choose a difficulty and send garbage lines to the opponent. The first board to top out loses. Attacks cancel your queued garbage before sending the remainder.",
-  )),
+  ("Move left", ("Move the T piece two cells to the left. Hold the key to keep moving.",)),
+  ("Move right", ("Move the piece two cells to the right. You can move back and forth.",)),
+  ("Rotate clockwise", ("Rotate the T piece clockwise once. Watch how its shape changes.",)),
+  ("Rotate counterclockwise", ("Rotate the T piece counterclockwise once.",)),
+  ("Try soft drop", ("Hold the soft-drop key to lower the piece at least three cells. Releasing it stops the descent in practice.",)),
+  ("Try hard drop", ("The translucent ghost shows the landing position. Hard drop places and locks the piece there immediately.",)),
+  ("Try hold", ("Store the T piece with HOLD and receive the next I piece. In a game, hold is available once per piece you place.",)),
+  ("Clear a line", ("Fill the four-cell gap in the bottom row with the I piece. Line up the ghost, then hard drop! Try again if you miss.",)),
  ),
  "ko": (
-  ("1. 기본 이동 단축키", (
-   "← / → : 조각을 왼쪽이나 오른쪽으로 이동합니다.",
-   "↓ : 누르고 있는 동안 소프트 드롭합니다. Space : 고스트 위치까지 즉시 하드 드롭하고 고정합니다.",
-   "↑ 또는 X : 시계 방향으로 회전합니다. Z : 반시계 방향으로 회전합니다.",
-  )),
-  ("2. 나머지 기본 단축키", (
-   "C 또는 왼쪽 Shift : 현재 조각을 홀드하거나 보관한 조각과 교환합니다.",
-   "Esc 또는 P : 일시정지합니다. 계속하기를 선택하거나 일시정지 키를 다시 누르면 이어서 플레이합니다.",
-   "Q : 플레이 중 게임을 종료합니다. 결과 화면에서는 마우스로 다시 시작 등 버튼을 선택합니다.",
-   "메뉴는 위·아래 방향키와 Enter 또는 마우스로 선택합니다. 튜토리얼은 좌우 키로 페이지를 바꾸고 Esc로 돌아갑니다. 위 키들은 기본값이며 게임 단축키는 설정에서 바꿀 수 있습니다.",
-  )),
-  ("3. 게임 모드의 차이", (
-   "40줄 : 40줄을 지우는 데 걸린 시간을 측정합니다. 마지막 줄을 지우면 끝나며, 더 짧은 시간이 좋은 기록입니다.",
-   "블리츠 : 120초 동안 점수를 얻습니다. 시간이 다 되면 끝나며, 더 높은 점수가 좋은 기록입니다.",
-   "마라톤 : 시간 제한과 목표 줄 수가 없습니다. 열 줄마다 레벨이 올라가는 환경에서 계속 플레이합니다.",
-   "AI 배틀 : 난이도를 고른 뒤 상대에게 쓰레기 줄을 보내며 겨룹니다. 먼저 보드가 막히면 패배합니다. 공격은 대기 중인 쓰레기 줄을 상쇄한 뒤 남은 양만 보냅니다.",
-  )),
+  ("왼쪽으로 이동", ("T 미노를 왼쪽으로 두 칸 움직여 보세요. 키를 계속 누르면 반복해서 이동해요.",)),
+  ("오른쪽으로 이동", ("미노를 오른쪽으로 두 칸 움직여 보세요. 좌우로 자유롭게 이동할 수 있어요.",)),
+  ("시계 방향으로 회전", ("T 미노를 시계 방향으로 한 번 회전하세요. 모양이 어떻게 바뀌는지 살펴보세요.",)),
+  ("반시계 방향으로 회전", ("이번에는 T 미노를 반시계 방향으로 한 번 회전해 보세요.",)),
+  ("소프트 드롭 체험", ("소프트 드롭 키를 누르고 미노를 세 칸 이상 내리세요. 연습에서는 키를 놓으면 내려가던 미노가 멈춰요.",)),
+  ("하드 드롭 체험", ("반투명 고스트가 착지할 위치를 보여 줘요. 하드 드롭하면 그 위치로 즉시 내려가 고정돼요.",)),
+  ("홀드 체험", ("홀드로 T 미노를 보관하고 다음 I 미노를 받아 보세요. 실제 게임에서는 미노를 하나 놓을 때마다 홀드를 한 번 사용할 수 있어요.",)),
+  ("한 줄 지우기", ("바닥의 빈 네 칸을 I 미노로 채워 보세요. 고스트 위치를 맞춘 다음 하드 드롭하세요! 실패하면 다시 시도할 수 있어요.",)),
  ),
 }
